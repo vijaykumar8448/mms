@@ -1,0 +1,63 @@
+<project name="Deploy Script" default="Start" basedir="." xmlns:sf="antlib:com.salesforce">
+	<taskdef name="xmltask" classname="com.oopsconsultancy.xmltask.ant.XmlTask"/>
+	<taskdef resource="net/sf/antcontrib/antlib.xml" />
+	<property environment="env"/>
+	<property name="Workspace" 			value="${env.WORKSPACE}"/>
+	<property name="PythonPath" 		value="C:\Users\anil.kumar.edke\AppData\Local\Programs\Python\Python36-32\python" />
+	<property name="Latest" 			value="${Workspace}\Latest" />
+	<property name="PythonScript" 		value="${Workspace}" />
+	<property name="Root" 				value="${Workspace}\Root"/>
+
+	<target name="Start">
+		<echo message="Start process" />
+		<antcall target="CleanWorkSpace" />
+		<antcall target="GitProcess" />
+		<antcall target="CleanUp" />
+		<antcall target="ZipFile" />
+		<!--<antcall target="Deploy" />-->
+		<echo message="Process completed" />
+	</target>
+	
+	<target name="CleanWorkSpace">	
+		<delete dir="${Root}"/>
+		<mkdir 	dir="${Root}"/>
+	</target>
+
+	<target name="GitProcess">
+		<exec executable="${PythonPath}" dir="${PythonScript}" failonerror="true">
+			<arg line="gitChanges.py ${Latest} ${Branch} ${Workspace} ${Workspace} ${Root} 43.0" />
+		</exec>		
+	</target>
+	
+	<target name="CleanUp">
+		<ant antfile="CleanUp.xml" target="Start">
+			<property name="Folder" value="${Root}"/>
+			<property name="FileToBeDeleted" value=""/>
+			<property name="Profiles" value="${Profiles}"/>
+			<property name="Permissions" value="${Permissions}"/>
+			<property name="CustomApplications" value="${CustomApplications}"/>
+			<property name="RemoveClasses" value="${RemoveClasses}"/>
+		</ant>   
+	</target>	
+	
+	<target name="ZipFile">
+		<delete file="${Workspace}\src.zip"/>
+		<zip destfile="${Workspace}\src.zip"><fileset dir="${Root}"/></zip>  
+	</target>
+	
+	<target name="Deploy">
+		<sf:deploy	rollbackOnError="true"
+					username="${UserId}"
+					password="${Password}"
+					serverurl="${Url}"
+					zipFile="${Workspace}\src.zip"
+					checkOnly="true"
+					ignoreWarnings="true"
+					allowMissingFiles="false"
+					singlePackage="true"
+					maxPoll="400"
+					pollWaitMillis="40000"
+					testLevel="NoTestRun">
+		</sf:deploy>
+	</target>
+</project>
